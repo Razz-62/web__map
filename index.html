@@ -56,6 +56,12 @@
             border-radius: 10px;
             box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
         }
+
+        #status {
+            margin-top: 10px;
+            color: red;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -64,6 +70,7 @@
         <h2>Track Live Location</h2>
         <input type="text" id="userIdInput" placeholder="Enter User ID">
         <button onclick="fetchLocation()">Track</button>
+        <p id="status"></p>
     </div>
 
     <div id="map"></div>
@@ -82,25 +89,39 @@
             appId: "1:525422821989:web:71342e4d62941ec64b7c8c",
             measurementId: "G-P8MWLS4VH6"
         };
-    
-        const app = initializeApp(firebaseConfig);
-        const database = getDatabase(app);
-    
+
+        let app, database;
+
+        try {
+            app = initializeApp(firebaseConfig);
+            database = getDatabase(app);
+        } catch (error) {
+            document.getElementById("status").innerText = "Error initializing Firebase.";
+            console.error(error);
+        }
+
         window.fetchLocation = function () {
             const userId = document.getElementById("userIdInput").value.trim();
+            const statusText = document.getElementById("status");
+
             if (!userId) {
-                alert("Enter a valid User ID.");
+                statusText.innerText = "Enter a valid User ID.";
                 return;
             }
-    
+
+            statusText.innerText = "Fetching location...";
+
             const locationRef = ref(database, "live_locations/" + userId);
             onValue(locationRef, (snapshot) => {
                 if (snapshot.exists()) {
                     const data = snapshot.val();
                     updateMap(parseFloat(data.latitude), parseFloat(data.longitude));
+                    statusText.innerText = "Location updated!";
                 } else {
-                    alert("User location not found.");
+                    statusText.innerText = "User location not found.";
                 }
+            }, {
+                onlyOnce: true
             });
         };
     </script>
@@ -127,9 +148,17 @@
             map.setCenter(location);
             map.setZoom(15);
         }
-    </script>
 
-    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAT4X0iZb_0p7otsg2JGgbn3bD8jM79phY&callback=initMap"></script>
+        function loadGoogleMaps() {
+            const script = document.createElement("script");
+            script.src = "https://maps.googleapis.com/maps/api/js?key=AIzaSyAT4X0iZb_0p7otsg2JGgbn3bD8jM79phY&callback=initMap";
+            script.async = true;
+            script.defer = true;
+            document.head.appendChild(script);
+        }
+
+        window.onload = loadGoogleMaps; // Ensures it loads after the page
+    </script>
 
 </body>
 </html>
