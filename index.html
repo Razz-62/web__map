@@ -90,15 +90,10 @@
             measurementId: "G-P8MWLS4VH6"
         };
 
-        let app, database;
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
 
-        try {
-            app = initializeApp(firebaseConfig);
-            database = getDatabase(app);
-        } catch (error) {
-            document.getElementById("status").innerText = "Error initializing Firebase.";
-            console.error(error);
-        }
+        let currentListener = null; // Store active Firebase listener
 
         window.fetchLocation = function () {
             const userId = document.getElementById("userIdInput").value.trim();
@@ -112,16 +107,21 @@
             statusText.innerText = "Fetching location...";
 
             const locationRef = ref(database, "live_locations/" + userId);
-            onValue(locationRef, (snapshot) => {
+
+            // Remove previous listener to prevent duplicate tracking
+            if (currentListener) {
+                currentListener();
+            }
+
+            // Listen for real-time location updates
+            currentListener = onValue(locationRef, (snapshot) => {
                 if (snapshot.exists()) {
                     const data = snapshot.val();
                     updateMap(parseFloat(data.latitude), parseFloat(data.longitude));
-                    statusText.innerText = "Location updated!";
+                    statusText.innerText = "Tracking live location...";
                 } else {
                     statusText.innerText = "User location not found.";
                 }
-            }, {
-                onlyOnce: true
             });
         };
     </script>
@@ -146,7 +146,7 @@
             }
 
             map.setCenter(location);
-            map.setZoom(15);
+            map.setZoom(19);
         }
 
         function loadGoogleMaps() {
